@@ -31,11 +31,11 @@ class ObjectStorage implements Iterator, Countable, ArrayAccess, Serializable {
      * @return  if the current iterator entry is valid
      */
     public function valid() {
-        return key($this->storage) !== false;
+        return key($this->storage) !== NULL;
     }
     
     /**
-     * 获取迭代指针指向的元素的键
+     * 获取迭代指针偏移值
      * @return the index at which the iterator currently is
      */
     public function key() {
@@ -79,14 +79,12 @@ class ObjectStorage implements Iterator, Countable, ArrayAccess, Serializable {
      */
     public function offsetGet($obj) {
         if (is_object($obj)) {
-            foreach($this->storage as $idx => $element) {
-                if ($object === $element[0]) {
-                    return $element[1];
-                }
+            if (isset($this->storage[$this->getHash($obj)])) {
+                return $this->storage[$this->getHash($obj)][1];
             }
         }
         return false;
-    }
+    }  
 
     /**
      * 以数组方式从容器移除对象
@@ -108,7 +106,7 @@ class ObjectStorage implements Iterator, Countable, ArrayAccess, Serializable {
      * @return a string representation of the storage
      */
     public function serialize() {
-        return serialize($this->$storage);
+        return serialize($this->storage);
     }
 
     /**
@@ -116,8 +114,7 @@ class ObjectStorage implements Iterator, Countable, ArrayAccess, Serializable {
      * @return a string representation of the storage
      */
     public function unserialize($storage) {
-        $this->$storage = unserialize($storage);
-        $this->index = 0;
+        $this->storage = unserialize($storage);
     }
 
     /**
@@ -134,7 +131,7 @@ class ObjectStorage implements Iterator, Countable, ArrayAccess, Serializable {
      */
     public function setInfo($inf = NULL) {
         if ($this->valid()) {
-            $this->storage[$this->index][1] = $inf;
+            $this->storage[key($this->storage)][1] = $inf;
         }
     }
     
@@ -144,10 +141,8 @@ class ObjectStorage implements Iterator, Countable, ArrayAccess, Serializable {
      */
     public function contains($obj) {
         if (is_object($obj)) {
-            foreach($this->storage as $element) {
-                if ($obj === $element[0]) {
-                    return true;
-                }
+            if (isset($this->storage[$this->getHash($obj)])) {
+                return true;
             }
         }
         return false;
@@ -158,7 +153,7 @@ class ObjectStorage implements Iterator, Countable, ArrayAccess, Serializable {
      */
     public function attach($obj, $inf = NULL) {
         if (is_object($obj) && !$this->contains($obj)) {
-            $this->storage[] = array($obj, $inf);
+            $this->storage[$this->getHash($obj)] = array($obj, $inf);
         }
     }
 
@@ -167,12 +162,10 @@ class ObjectStorage implements Iterator, Countable, ArrayAccess, Serializable {
      */
     public function detach($obj) {
         if (is_object($obj)) {
-            foreach($this->storage as $idx => $element) {
-                if ($obj === $element[0]) {
-                    unset($this->storage[$idx]);
-                    $this->rewind();
-                    return;
-                }
+            if (isset($this->storage[$this->getHash($obj)])) {
+                unset($this->storage[$this->getHash($obj)]);
+                $this->rewind();
+                return;
             }
         }
     }
@@ -188,12 +181,13 @@ class ObjectStorage implements Iterator, Countable, ArrayAccess, Serializable {
     /** 
      * 将目标容器的对象添加到当前的容器
      */
-    public function addAll(ObjectStorage $obj) {
-        if (is_object($obj)) {
-            while($obj->valid()) {
-                $element = $obj->current();
+    public function addAll(ObjectStorage $storage) {
+        if (is_object($storage)) {
+            $storage->rewind();
+            while($storage->valid()) {
+                $element = $storage->current();
                 $this->attach($element[0], $element[1]);
-                $obj->next();
+                $storage->next();
             }
         }
     }
@@ -201,13 +195,15 @@ class ObjectStorage implements Iterator, Countable, ArrayAccess, Serializable {
     /** 
      * 将目标容器的对象从当前的容器中删除
      */
-    public function removeAll(ObjectStorage $obj) {
-        if (is_object($obj)) {
-            while($obj->valid()) {
-                if ($this->contains($obj->current())) {
-                    $this->detach($obj->current());
+    public function removeAll(ObjectStorage $storage) {
+        if (is_object($storage)) {
+            $storage->rewind();
+            while($storage->valid()) {
+                $element = $storage->current();
+                if ($this->contains($element[0])) {
+                    $this->detach($element[0]);
                 }
-                $obj->next();
+                $storage->next();
             }
         }
     }
@@ -215,15 +211,15 @@ class ObjectStorage implements Iterator, Countable, ArrayAccess, Serializable {
     /** 
      * 删除当前容器中不存在于目标容器中的对象
      */
-    public function removeAllExcept(ObjectStorage $obj) {
-        if (is_object($obj)) {
+    public function removeAllExcept(ObjectStorage $storage) {
+        if (is_object($storage)) {
+            $this->rewind();
             foreach($this->storage as $idx => $element) {
-                if ($obj->contains($element[0])) {
+                if ($storage->contains($element[0])) {
                     continue;
                 }
                 unset($this->storage[$idx]);
             }
-            $this->rewind();
         }
     }
 }
