@@ -201,10 +201,10 @@ var_dump($redis->zRange('union',0,-1,true));
  * zInter
  * 对多个zset求交集，并将最后的集合保存在key中
  *
- * @param key string 并集存放结果的key
- * @param zsets array[key1,key2,...] 用于计算并集的有序集合的key组成的数组
- * @param weights array[key1ScoreWeight,key2ScoreWeight,...] 可选，默认为1，计算并集之前各个有序集合元素权重要乘以的基数
- * @param aggregate string 可选，默认为sum.即计算并集时相同的元素score值相加，min表示计算并集时相同元素score取最小的，max表示计算并集时相同元素score取最大的
+ * @param key string 交集存放结果的key
+ * @param zsets array[key1,key2,...] 用于计算交集的有序集合的key组成的数组
+ * @param weights array[key1ScoreWeight,key2ScoreWeight,...] 可选，默认为1，计算交集之前各个有序集合元素权重要乘以的基数
+ * @param aggregate string 可选，默认为sum.即计算交集时相同的元素score值相加，min表示计算交集时相同元素score取最小的，max表示计算交集时相同元素score取最大的
  * @return array
  */
 $redis->zInter('inter',array('point','other'),array(2,3));
